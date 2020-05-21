@@ -4,6 +4,7 @@ import re
 import os
 import math
 import random
+import codecs
 
 
 class NaiveBayesClassifier(object):
@@ -77,7 +78,7 @@ class NaiveBayesClassifier(object):
             self.samples_cnt_category["ham"] / sum(self.samples_cnt_category.values())  # get prior probability
         self.prior_p_spam = \
             self.samples_cnt_category["spam"] / sum(self.samples_cnt_category.values())
-        for word, cnt in self.words_cnt_category["ham"].items():
+        for word, cnt in self.words_cnt_category["ham"].items():    # get words probability in two categories, P(X|Y)
             self.words_prob_category["ham"][word] = cnt / sum(self.words_cnt_category["ham"].values())
         for word, cnt in self.words_cnt_category["spam"].items():
             self.words_prob_category["spam"][word] = cnt / sum(self.words_cnt_category["spam"].values())
@@ -137,24 +138,28 @@ class NaiveBayesClassifier(object):
         return correct_num / file_num
 
 
-def getData(dir):
+def getData(path, cn = False):
     """
-    get all txt files'path under the dir\n
-    :param dir: root folder that contains all mails
+    get all emails'path and their labels\n
+    :param path: if cn is False, path is the root folder that contains English emails else
+                path is the index file for CN emails
+    :param cn: if datas are Chinese emails then True, default False
     :return: file list(full path) , label list
     """
     file_list = []
     label_list = []
-    spam_files = os.listdir(os.path.join(dir, "spam"))
-    ham_files = os.listdir(os.path.join(dir, "ham"))
-    for spam_file in spam_files:
-        if spam_file.endswith(".txt"):
-            file_list.append(os.path.join(os.path.join(dir, "spam"), spam_file))
-            label_list.append("spam")
-    for ham_file in ham_files:
-        if ham_file.endswith(".txt"):
-            file_list.append(os.path.join(os.path.join(dir, "ham"), ham_file))
-            label_list.append("ham")
+    if not cn:
+        spam_files = os.listdir(os.path.join(path, "spam"))
+        ham_files = os.listdir(os.path.join(path, "ham"))
+        for spam_file in spam_files:
+            if spam_file.endswith(".txt"):
+                file_list.append(os.path.join(os.path.join(path, "spam"), spam_file))
+                label_list.append("spam")
+        for ham_file in ham_files:
+            if ham_file.endswith(".txt"):
+                file_list.append(os.path.join(os.path.join(path, "ham"), ham_file))
+                label_list.append("ham")
+
     return file_list, label_list
 
 

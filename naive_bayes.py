@@ -47,7 +47,7 @@ class NaiveBayesClassifier(object):
         :return: a Chinese string without stop words
         """
         if len(self.stop_words) == 0:
-            self.stop_words = [open(self.stop_words_file, encoding='gb2312').read().split()]
+            self.stop_words = [open(self.stop_words_file, encoding='gbk').read().split()]
             print("Get stop words successfully!")
             print(self.stop_words)
         return ''.join(c for c in s_cn if c not in self.stop_words)
@@ -72,21 +72,6 @@ class NaiveBayesClassifier(object):
         for word in words:
             words_count[word] = words_count.get(word, 0.0) + 1.0
         return words_count
-
-    def __countWordsCN(self, s_cn, category):
-        if len(self.stop_words) == 0:
-            self.stop_words = [open(self.stop_words_file, encoding='gb2312').read().split()]
-            print("Get stop words successfully!")
-            print(self.stop_words)
-        text = jieba.lcut(s_cn)
-        for word in text:
-            if word not in self.stop_words:
-                if word not in self.words_cnt_all:
-                    self.words_cnt_all[word] = 0.0
-                if word not in self.words_cnt_category[category]:
-                    self.words_cnt_category[category][word] = 0.0
-                self.words_cnt_all[word] += 1
-                self.words_cnt_category[category][word] += 1
 
     def train(self, sample_path_list, sample_label_list, stop_words_file=None):
         """
@@ -242,7 +227,7 @@ nb_classifier.predict(test_mails)
 print("English emails accuracy: ", nb_classifier.calcAccuracy(test_labels))
 
 (train_mails, train_labels), (test_mails, test_labels) \
-    = getData(r"H:\机器学习\实验二\Bayes数据集\trec06c\data\newindex.txt", train_ratio=0.01, cn=True)
+    = getData(r"H:\机器学习\实验二\Bayes数据集\trec06c\data\newindex.txt", train_ratio=0.0001, cn=True)
 nb_classifier_cn = NaiveBayesClassifier(cn=True,
                                         stop_word_file=r"H:\机器学习\实验二\Bayes数据集\trec06c\data\中文停用词表GBK.txt")
 nb_classifier_cn.train(train_mails, train_labels)

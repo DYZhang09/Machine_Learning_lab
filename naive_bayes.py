@@ -4,6 +4,8 @@ import os
 import math
 import random
 import jieba
+import time
+import matplotlib.pyplot as plt
 
 
 class NaiveBayesClassifier(object):
@@ -81,6 +83,7 @@ class NaiveBayesClassifier(object):
         :param sample_label_list: a list of sample emails'labels
         :return: None
         """
+        time_start = time.time()
         for i in range(len(sample_path_list)):
             if (i + 1) % 1000 == 0:
                 print("Processing(train): ", i + 1)
@@ -105,7 +108,7 @@ class NaiveBayesClassifier(object):
                 self.words_cnt_all[word] += cnt
                 self.words_cnt_category[category][word] += cnt
 
-        print("Calculating Probabilities...\n")
+        print("Calculating Probabilities...")
         self.prior_p_ham = \
             self.samples_cnt_category["ham"] / sum(self.samples_cnt_category.values())  # get prior probability
         self.prior_p_spam = \
@@ -117,12 +120,16 @@ class NaiveBayesClassifier(object):
         for word, cnt in self.words_cnt_category["spam"].items():
             self.words_prob_category["spam"][word] = cnt / sum_word_cnt_spam
 
+        time_end = time.time()
+        print("Time cost(train): %d s\n" % (time_end - time_start))
+
     def predict(self, data_path_list):
         """
         use Naive Bayes classifier to predict emails\n
         :param data_path_list: a list of sample emails'path for testing
         :return: a python dictionary that contains information of file paths and their classes
         """
+        time_start = time.time()
         words_cnt_ham = sum(self.words_cnt_category["ham"].values())  # total number of words in two categories
         words_cnt_spam = sum(self.words_cnt_category["spam"].values())
         words_kinds_ham = len(self.words_cnt_category["ham"].values())  # number of different words in two categories
@@ -163,6 +170,8 @@ class NaiveBayesClassifier(object):
             category = "ham" if log_p_ham >= log_p_spam else "spam"
             self.predict_file_label_dict[data_path] = category
 
+        time_end = time.time()
+        print("Time cost(test): %d s\n" % (time_end - time_start))
         return self.predict_file_label_dict
 
     def calcAccuracy(self, test_label_list):
@@ -210,7 +219,7 @@ def getData(path, train_ratio=0.7, cn=False):
             file_list.append(os.path.join(root_path, info[1]))
             label_list.append(info[0])
 
-    mail_num = len(file_list)   # split all emails into two parts, one for train and the other for test
+    mail_num = len(file_list)  # split all emails into two parts, one for train and the other for test
     index = [i for i in range(mail_num)]
     random.shuffle(index)
     index_train = index[:(int)(mail_num * train_ratio)]
@@ -223,11 +232,34 @@ def getData(path, train_ratio=0.7, cn=False):
     return (train_mails, train_labels), (test_mails, test_labels)
 
 
+def visualizeSpamWordsProb(dict_spam_words_prob):
+    """
+    visualize the probability of top 10 words in spams\n
+    :param dict_spam_words_prob: a python dictionary, elements are (word, count)
+    :return: None
+    """
+    sort_dict_spam_words = sorted(dict_spam_words_prob.items(), key=lambda item: item[1])[-10:]
+    sort_list_words = []
+    sort_list_cnts = []
+    for word, cnt in sort_dict_spam_words:
+        sort_list_words.append(word)
+        sort_list_cnts.append(cnt)
+    plt.rcParams["font.family"] = "STSong"
+    plt.barh(range(len(sort_list_cnts)), sort_list_cnts, color='steelblue', tick_label=sort_list_words)
+    for x, y in enumerate(sort_list_cnts):
+        plt.text(y + 0.0001, x, '%.4f' % y)
+    plt.xlabel('Probability')
+    plt.ylabel('Word')
+    plt.show()
+
+
 (train_mails, train_labels), (test_mails, test_labels) = getData(r"H:/机器学习/实验二/Bayes数据集/english_email")
 nb_classifier = NaiveBayesClassifier()
 nb_classifier.train(train_mails, train_labels)
 nb_classifier.predict(test_mails)
 print("English emails accuracy: %.5f\n" % nb_classifier.calcAccuracy(test_labels))
+spam_words_prob = nb_classifier.words_prob_category["spam"]
+visualizeSpamWordsProb(spam_words_prob)
 
 (train_mails, train_labels), (test_mails, test_labels) \
     = getData(r"H:\机器学习\实验二\Bayes数据集\trec06c\data\newindex.txt", train_ratio=0.7, cn=True)
@@ -236,3 +268,5 @@ nb_classifier_cn = NaiveBayesClassifier(cn=True,
 nb_classifier_cn.train(train_mails, train_labels)
 nb_classifier_cn.predict(test_mails)
 print("Chinese emails accuracy: %.5f\n" % nb_classifier_cn.calcAccuracy(test_labels))
+spam_words_prob_cn = nb_classifier_cn.words_prob_category["spam"]
+visualizeSpamWordsProb(spam_words_prob_cn)

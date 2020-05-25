@@ -9,12 +9,11 @@ import matplotlib.pyplot as plt
 
 
 class NaiveBayesClassifier(object):
-    def __init__(self, cn=False, stop_word_file=None):
+    def __init__(self, stop_word_file, cn=False):
         """
         initialize the Naive Bayes classifiers\n
+        :param stop_word_file: the .txt file that contains stop words
         :param cn: if the model is trained for Chinese emails then True. Default False
-        :param stop_word_file: if cn is True, this is the stop words file path. if cn is False, this is useless.
-                                Default None.
         """
         self.words_cnt_all = {}  # count words in all files
         self.words_cnt_category = {"ham": {}, "spam": {}}  # count words desperately in files of two categories
@@ -44,6 +43,7 @@ class NaiveBayesClassifier(object):
         """
         text = self.__removePunctuation(s)
         text = text.lower()
+        text = re.sub("\d+", " ", text)
         return re.split("\W+", text)
 
     def __countWords(self, words):
@@ -52,10 +52,15 @@ class NaiveBayesClassifier(object):
         :param words: string that needs to count words
         :return: a Python dictionary that contains information about words and their number
         """
+        if len(self.stop_words) == 0:
+            self.stop_words = [line.strip() for line in open(self.stop_words_file).readlines()]
+            print("Get stop words(EN) successfully!")
+
         words_count = {}
         words_en = self.__tokenize(words)
         for word in words_en:
-            words_count[word] = words_count.get(word, 0.0) + 1.0
+            if word not in self.stop_words:
+                words_count[word] = words_count.get(word, 0.0) + 1.0
         return words_count
 
     def __countWordsCN(self, words):
@@ -66,7 +71,7 @@ class NaiveBayesClassifier(object):
         """
         if len(self.stop_words) == 0:  # get stop words list
             self.stop_words = [line.strip() for line in open(self.stop_words_file, encoding='gb2312').readlines()]
-            print("Get stop words successfully!")
+            print("Get stop words(CN) successfully!")
 
         words_count = {}
         words_cn = re.sub(u"([^\u4e00-\u9fa5])", "", words)  # ignore numbers and alphas
@@ -99,8 +104,6 @@ class NaiveBayesClassifier(object):
                 words_cnt = self.__countWordsCN(text)
 
             for word, cnt in list(words_cnt.items()):
-                if self.cn is False and len(word) <= 3:
-                    continue
                 if word not in self.words_cnt_all:
                     self.words_cnt_all[word] = 0.0
                 if word not in self.words_cnt_category[category]:
@@ -151,9 +154,6 @@ class NaiveBayesClassifier(object):
                 words_cnt = self.__countWordsCN(text)
 
             for word, cnt in words_cnt.items():
-                if self.cn is False and len(word) <= 3:
-                    continue
-
                 word_cnt_ham = self.words_cnt_category["ham"].get(word, 0.)
                 word_cnt_spam = self.words_cnt_category["spam"].get(word, 0.)
 
@@ -232,7 +232,7 @@ def getData(path, train_ratio=0.7, cn=False):
     return (train_mails, train_labels), (test_mails, test_labels)
 
 
-def visualizeSpamWordsProb(dict_spam_words_prob):
+def visualizeSpamWordsProb(dict_spam_words_prob, cn=False):
     """
     visualize the probability of top 10 words in spams\n
     :param dict_spam_words_prob: a python dictionary, elements are (word, count)
@@ -244,17 +244,19 @@ def visualizeSpamWordsProb(dict_spam_words_prob):
     for word, cnt in sort_dict_spam_words:
         sort_list_words.append(word)
         sort_list_cnts.append(cnt)
+
     plt.rcParams["font.family"] = "STSong"
     plt.barh(range(len(sort_list_cnts)), sort_list_cnts, color='steelblue', tick_label=sort_list_words)
     for x, y in enumerate(sort_list_cnts):
         plt.text(y + 0.0001, x, '%.4f' % y)
+    plt.title("Probability of the 10 most frequent words in %s spam" % ('CN' if cn else 'EN'))
     plt.xlabel('Probability')
     plt.ylabel('Word')
     plt.show()
 
 
 (train_mails, train_labels), (test_mails, test_labels) = getData(r"H:/机器学习/实验二/Bayes数据集/english_email")
-nb_classifier = NaiveBayesClassifier()
+nb_classifier = NaiveBayesClassifier(stop_word_file=r"H:\机器学习\实验二\Bayes数据集\english_email\stopwords.txt")
 nb_classifier.train(train_mails, train_labels)
 nb_classifier.predict(test_mails)
 print("English emails accuracy: %.5f\n" % nb_classifier.calcAccuracy(test_labels))
@@ -269,4 +271,4 @@ nb_classifier_cn.train(train_mails, train_labels)
 nb_classifier_cn.predict(test_mails)
 print("Chinese emails accuracy: %.5f\n" % nb_classifier_cn.calcAccuracy(test_labels))
 spam_words_prob_cn = nb_classifier_cn.words_prob_category["spam"]
-visualizeSpamWordsProb(spam_words_prob_cn)
+visualizeSpamWordsProb(spam_words_prob_cn, cn=True)

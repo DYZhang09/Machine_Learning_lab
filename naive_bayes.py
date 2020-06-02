@@ -9,10 +9,12 @@ import matplotlib.pyplot as plt
 
 
 class NaiveBayesClassifier(object):
-    def __init__(self, stop_word_file, cn=False):
+    def __init__(self, stop_word_file, polynomial=True, cn=False):
         """
         initialize the Naive Bayes classifiers\n
         :param stop_word_file: the .txt file that contains stop words
+        :param polynomial: if polynomial is True, the classifier will use polynomial model,
+                            else will use bernoulli model. Default True
         :param cn: if the model is trained for Chinese emails then True. Default False
         """
         self.words_cnt_all = {}  # count words in all files
@@ -25,6 +27,7 @@ class NaiveBayesClassifier(object):
         self.cn = cn  # whether the emails are Chinese emails or not
         self.stop_words_file = stop_word_file  # stop words file path for Chinese emails
         self.stop_words = []  # store the stop words
+        self.polynomial = polynomial
 
     def __removePunctuation(self, s):
         """
@@ -103,13 +106,16 @@ class NaiveBayesClassifier(object):
                 text = open(text_file, encoding='gb2312').read()
                 words_cnt = self.__countWordsCN(text)
 
-            for word, cnt in list(words_cnt.items()):
+            for word, cnt in words_cnt.items():
                 if word not in self.words_cnt_all:
                     self.words_cnt_all[word] = 0.0
                 if word not in self.words_cnt_category[category]:
                     self.words_cnt_category[category][word] = 0.0
                 self.words_cnt_all[word] += cnt
-                self.words_cnt_category[category][word] += cnt
+                if self.polynomial:
+                    self.words_cnt_category[category][word] += cnt
+                else:
+                    self.words_cnt_category[category][word] += 1
 
         print("Calculating Probabilities...")
         self.prior_p_ham = \
@@ -162,8 +168,12 @@ class NaiveBayesClassifier(object):
                 theta_spam = (self.words_prob_category["spam"][word]
                               if word_cnt_spam else 1 / (words_kinds_spam + words_cnt_spam))
 
-                log_p_ham += cnt * math.log(theta_ham)
-                log_p_spam += cnt * math.log(theta_spam)
+                if self.polynomial:
+                    log_p_ham += cnt * math.log(theta_ham)
+                    log_p_spam += cnt * math.log(theta_spam)
+                else:
+                    log_p_ham += math.log(theta_ham)
+                    log_p_spam += math.log(theta_spam)
 
             log_p_ham += math.log(self.prior_p_ham)  # get the probability of two categories
             log_p_spam += math.log(self.prior_p_spam)
@@ -265,10 +275,36 @@ visualizeSpamWordsProb(spam_words_prob)
 
 (train_mails, train_labels), (test_mails, test_labels) \
     = getData(r"H:\机器学习\实验二\Bayes数据集\trec06c\data\newindex.txt", train_ratio=0.7, cn=True)
-nb_classifier_cn = NaiveBayesClassifier(cn=True,
-                                        stop_word_file=r"H:\机器学习\实验二\Bayes数据集\trec06c\data\中文停用词表GBK.txt")
-nb_classifier_cn.train(train_mails, train_labels)
-nb_classifier_cn.predict(test_mails)
-print("Chinese emails accuracy: %.5f\n" % nb_classifier_cn.calcAccuracy(test_labels))
-spam_words_prob_cn = nb_classifier_cn.words_prob_category["spam"]
-visualizeSpamWordsProb(spam_words_prob_cn, cn=True)
+train_nums = [100, 500, 1000, 2000, 5000, 10000, 15000, 25000, 35000]
+accuracy_list_poly = []
+accuracy_list_bernoulli = []
+for num in train_nums:
+    nb_classifier_cn = NaiveBayesClassifier(cn=True,
+                                            stop_word_file=r"H:\机器学习\实验二\Bayes数据集\trec06c\data\中文停用词表GBK.txt")
+    nb_classifier_cn.train(train_mails[:num], train_labels[:num])
+    nb_classifier_cn.predict(test_mails)
+    accuracy = nb_classifier_cn.calcAccuracy(test_labels)
+    accuracy_list_poly.append(accuracy)
+    print("Chinese emails accuracy: %.5f\n" % accuracy)
+    # spam_words_prob_cn = nb_classifier_cn.words_prob_category["spam"]
+    # visualizeSpamWordsProb(spam_words_prob_cn, cn=True)
+
+    nb_classifier_cn_b = NaiveBayesClassifier(cn=True,
+                                              stop_word_file=r"H:\机器学习\实验二\Bayes数据集\trec06c\data\中文停用词表GBK.txt",
+                                              polynomial=False)
+    nb_classifier_cn_b.train(train_mails[:num], train_labels[:num])
+    nb_classifier_cn_b.predict(test_mails)
+    accuracy = nb_classifier_cn_b.calcAccuracy(test_labels)
+    accuracy_list_bernoulli.append(accuracy)
+    print("Chinese emails accuracy: %.5f\n" % accuracy)
+    # spam_words_prob_cn = nb_classifier_cn.words_prob_category["spam"]
+    # visualizeSpamWordsProb(spam_words_prob_cn, cn=True)
+print(accuracy_list_poly)
+print(accuracy_list_bernoulli)
+plt.plot(train_nums, accuracy_list_poly, 's-', color='r', label="polynomial")
+plt.plot(train_nums, accuracy_list_bernoulli, 'o-', color='g', label="bernoulli")
+plt.xlabel("number of train samples")
+plt.ylabel("accuracy")
+plt.legend(loc="best")
+plt.grid()
+plt.show()

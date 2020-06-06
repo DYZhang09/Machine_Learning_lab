@@ -199,7 +199,7 @@ history_losses = []
 history_accuracies = []
 index = [i * 5 for i in range(int(epoch / 5))]
 best_accu = .0
-best_param = None
+best_param = {'learning_rate': .0, 'regularization': .0}
 
 for learning_rate in learning_rates:
     for reg_strength in reg_strengths:
@@ -213,7 +213,8 @@ for learning_rate in learning_rates:
         print("Accuracy: %.5f" % acc)
         if acc > best_accu:
             best_accu = acc
-            best_param = 'learning_rate: ' + str(learning_rate) + ' regularization: ' + str(reg_strength)
+            best_param['learning_rate'] = learning_rate
+            best_param['regularization'] = reg_strength
 plt.xlabel("epoch")
 plt.ylabel("loss")
 plt.legend(loc="best")

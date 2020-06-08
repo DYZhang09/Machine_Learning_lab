@@ -18,10 +18,10 @@ class LogisticRegression(object):
         """
         self.learning_rate = learning_rate
         self.reg_strength = reg_strength
-        self.train_data = train_data
-        self.train_label = train_label
-        self.test_data = test_data
-        self.test_label = test_label
+        self.train_data = train_data.copy()
+        self.train_label = train_label.copy()
+        self.test_data = test_data.copy()
+        self.test_label = test_label.copy()
         self.weight = None
         self.beta = None
         self.ada_h_w = None
@@ -35,7 +35,7 @@ class LogisticRegression(object):
         :return: None
         """
         self.weight = np.random.randn(dimension, 1)
-        self.beta = np.random.randn()
+        self.beta = 0
         self.ada_h_w = np.zeros_like(self.weight)
         self.ada_h_b = 0
 
@@ -247,9 +247,9 @@ def drawAccuOfBestForDiffEpoch(train_data, train_label, test_data, test_label,
     learning_rate = best_param['learning_rate']
     reg_strength = best_param['regularization']
     accuracies = []
+    lr = LogisticRegression(train_data, train_label, test_data, test_label,
+                            learning_rate=learning_rate, reg_strength=reg_strength)
     for epoch in epochs:
-        lr = LogisticRegression(train_data, train_label, test_data, test_label,
-                                learning_rate=learning_rate, reg_strength=reg_strength)
         lr.train(epoch, optimize)
         lr.predict()
         accu = lr.calcAccuracy()
@@ -262,21 +262,26 @@ def drawAccuOfBestForDiffEpoch(train_data, train_label, test_data, test_label,
     plt.show()
     return accuracies
 
+
 learning_rates = [5e-1, 1e-1, 5e-2, 1e-2]
 reg_strengths1 = [1e-1, 1e-2]
 reg_strengths2 = [1e-3, 1e-4]
 epoch = 300
 (train_data, train_label), (test_data, test_label) = getData(r"H:\机器学习\结课实验\income.csv")
+
+optimize = 'rmsprop'
 best_accu_1, best_param_1 = drawLossForDiffParams(train_data, train_label, test_data, test_label,
-                                                  learning_rates, reg_strengths1, epoch)
+                                                  learning_rates, reg_strengths1, epoch, optimize=optimize)
 best_accu_2, best_param_2 = drawLossForDiffParams(train_data, train_label, test_data, test_label,
-                                                  learning_rates, reg_strengths2, epoch)
+                                                  learning_rates, reg_strengths2, epoch, optimize=optimize)
 best_accu = best_accu_1 if best_accu_1 > best_accu_2 else best_accu_2
 best_param = best_param_1 if best_accu_1 > best_accu_2 else best_param_2
 print(best_accu)
 print(best_param)
 
+best_param['learning_rate'] = 1e-2
+
 epochs = [30, 50, 100, 150, 300, 500, 750, 1000, 1500]
 accuracies = drawAccuOfBestForDiffEpoch(train_data, train_label, test_data, test_label,
-                                        best_param, epochs)
+                                        best_param, epochs, optimize=optimize)
 print(accuracies)

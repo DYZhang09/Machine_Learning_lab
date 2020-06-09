@@ -1,27 +1,17 @@
 import numpy as np
-import csv
-import os
-import matplotlib.pyplot as plt
+from tools_logistic_and_svm \
+    import getData, drawAccuOfBestForDiffEpoch, drawLossForDiffParams
 
 
 class LogisticRegression(object):
-    def __init__(self, train_data, train_label, test_data, test_label,
-                 learning_rate=1e-3, reg_strength=0.5):
+    def __init__(self, learning_rate=1e-3, reg_strength=1e-2):
         """
         init Logistic Regression classifier.\n
-        :param train_data: data for classifier training with shape (N, D)
-        :param train_label: label of train data with shape (1, N)
-        :param test_data: data for classifier prediction with shape (N, D)
-        :param test_label: label of test data with shape (1, N)
         :param learning_rate: learning rate , default 1e-3
-        :param reg_strength: regularization strength, default 0.5
+        :param reg_strength: regularization strength, default 1e-2
         """
         self.learning_rate = learning_rate
         self.reg_strength = reg_strength
-        self.train_data = train_data.copy()
-        self.train_label = train_label.copy()
-        self.test_data = test_data.copy()
-        self.test_label = test_label.copy()
         self.weight = None
         self.beta = None
         self.ada_h_w = None
@@ -123,45 +113,38 @@ class LogisticRegression(object):
             self.weight -= self.learning_rate * d_weight / (np.sqrt(self.ada_h_w) + 1e-7)
             self.beta -= self.learning_rate * d_beta / (np.sqrt(self.ada_h_b) + 1e-7)
 
-    def train(self, epoch=1, optimize='sgd'):
+    def train(self, train_data, train_label, epoch=1, optimize='sgd'):
         """
         train for classifier.\n
+        :param train_data: data for classifier training with shape (N, D)
+        :param train_label: ground-truth label of train data with shape (1, N)
         :param epoch: the number of iterations of training
         :param optimize: optimize method, can be 'sgd', 'adagrad' and 'rmsprop'. default 'sgd'.
-        :return: history train loss(every 10 epochs), history test loss(every 10 epochs)
+        :return: history train loss(every 10 epochs)
         """
         history_train_loss = []
-        history_test_loss = []
-        self.__initParams(self.train_data.shape[1])  # initialize params
-        train_x = self.train_data.T.copy()
+        self.__initParams(train_data.shape[1])  # initialize params
+        train_x = train_data.T.copy()
 
         for i in range(epoch):
             if (i + 1) % 100 == 0:
                 print("Processing epoch: %d" % (i + 1))
             (pred, loss), (d_weight, d_beta) = self.__propagation(train_x,
-                                                                  self.train_label)  # calculate loss and gradients
+                                                                  train_label)  # calculate loss and gradients
             self.__updateParams(d_weight, d_beta, optimize)  # update params
-
-            test_pred = self.predict(return_label=False)  # calculate loss on test data
-            test_loss, _ = self.__crossEntropyLoss(test_pred, self.test_label)
             if i % 10 == 0:
                 history_train_loss.append(loss)
-                history_test_loss.append(test_loss)
-        return history_train_loss, history_test_loss
+        return history_train_loss
 
-    def predict(self, test_data=True, return_label=True):
+    def predict(self, test_data, return_label=True):
         """
         use the hypothesis of classifier to predict.\n
-        :param test_data: if True then predict for test data else predict for train data.
-                            default True
+        :param test_data: data to predict with shape (N, D)
         :param return_label: if True this function will return label(0 or 1) of each sample
                                 else return probability(between 0 and 1)) of each sample
         :return: labels if return_label is True else probabilities
         """
-        if test_data:
-            test_x = self.test_data.T.copy()
-        else:
-            test_x = self.train_data.T.copy()
+        test_x = test_data.T.copy()
         pred = self.__sigmoid(self.weight.T @ test_x + self.beta)
         pred_label = pred.copy()
         pred_label[pred_label < 0.5] = 0
@@ -172,95 +155,16 @@ class LogisticRegression(object):
         else:
             return pred
 
-    def calcAccuracy(self, test_label=True):
+    def calcAccuracy(self, test_label):
         """
         calculate accuracy .\n
-        :param test_label: if True then calculate accuracy on test data else on train data.
-                            default True
+        :param test_label: ground-truth label of test data with shape (1, N)
         :return: accuracy
         """
-        if test_label:
-            label = self.test_label
-        else:
-            label = self.train_label
+        label = test_label
         diff = self.predict_label - label
         correct = diff[diff == 0.]
         return correct.size / label.shape[1]
-
-
-def getData(csv_file_path):
-    """
-    get data from csv file.\n
-    :param csv_file_path: csv file path
-    :return: (train_data, train_label), (test_data, test_label)
-    """
-    if os.path.exists(csv_file_path) is False:
-        print(csv_file_path + "Not found.")
-        return None
-    features_all = []
-    labels_all = [[]]
-    with open(csv_file_path) as csv_file:
-        csv_reader = csv.reader(csv_file)
-        for row in csv_reader:
-            features_all.append([float(feature) for feature in row[1:58]])  # get features
-            labels_all[0].append(float(row[-1]))  # get labels
-    data = np.array(features_all)  # transform list into numpy array
-    label = np.array(labels_all)
-    data_mean = np.mean(data, axis=0, keepdims=True)  # standardize data
-    data_std = np.std(data, axis=0, keepdims=True)
-    data = (data - data_mean) / data_std
-    train_data = data[:3000]  # split data into two parts
-    test_data = data[3000:]
-    train_label = label[:, :3000]
-    test_label = label[:, 3000:]
-    return (train_data, train_label), (test_data, test_label)
-
-
-def drawLossForDiffParams(train_data, train_label, test_data, test_label,
-                          learning_rates, reg_strengths, epoch, optimize='sgd'):
-    best_accu = .0
-    best_param = {'learning_rate': .0, 'regularization': .0}
-    index = [i * 10 for i in range(int(epoch / 10))]
-    for reg_strength in reg_strengths:
-        for learning_rate in learning_rates:
-            lr = LogisticRegression(train_data, train_label, test_data, test_label,
-                                    learning_rate=learning_rate, reg_strength=reg_strength)
-            history_train_loss, history_test_loss = lr.train(epoch=epoch, optimize=optimize)
-            accu = lr.calcAccuracy()
-            plt.plot(index, history_train_loss,
-                     marker='o', label='train_loss ' + 'lr: ' + str(learning_rate) + ' reg: ' + str(reg_strength))
-            if accu > best_accu:
-                best_accu = accu
-                best_param['learning_rate'] = learning_rate
-                best_param['regularization'] = reg_strength
-    plt.legend(loc='best')
-    plt.xlabel('epoch')
-    plt.ylabel('loss')
-    plt.title('Train loss of different hyper-params')
-    plt.grid()
-    plt.show()
-    return best_accu, best_param
-
-
-def drawAccuOfBestForDiffEpoch(train_data, train_label, test_data, test_label,
-                               best_param, epochs, optimize='sgd'):
-    learning_rate = best_param['learning_rate']
-    reg_strength = best_param['regularization']
-    accuracies = []
-    lr = LogisticRegression(train_data, train_label, test_data, test_label,
-                            learning_rate=learning_rate, reg_strength=reg_strength)
-    for epoch in epochs:
-        lr.train(epoch, optimize)
-        lr.predict()
-        accu = lr.calcAccuracy()
-        accuracies.append(accu)
-    plt.plot(epochs, accuracies, 'ro-')
-    plt.xlabel('epoch')
-    plt.ylabel('accuracy')
-    plt.title('Accuracy of best classifier by different epoch')
-    plt.grid()
-    plt.show()
-    return accuracies
 
 
 learning_rates = [5e-1, 1e-1, 5e-2, 1e-2]
@@ -269,10 +173,13 @@ reg_strengths2 = [1e-3, 1e-4]
 epoch = 300
 (train_data, train_label), (test_data, test_label) = getData(r"H:\机器学习\结课实验\income.csv")
 
+# draw loss for different hyper-params
 optimize = 'rmsprop'
-best_accu_1, best_param_1 = drawLossForDiffParams(train_data, train_label, test_data, test_label,
+best_accu_1, best_param_1 = drawLossForDiffParams(LogisticRegression,
+                                                  train_data, train_label, test_data, test_label,
                                                   learning_rates, reg_strengths1, epoch, optimize=optimize)
-best_accu_2, best_param_2 = drawLossForDiffParams(train_data, train_label, test_data, test_label,
+best_accu_2, best_param_2 = drawLossForDiffParams(LogisticRegression,
+                                                  train_data, train_label, test_data, test_label,
                                                   learning_rates, reg_strengths2, epoch, optimize=optimize)
 best_accu = best_accu_1 if best_accu_1 > best_accu_2 else best_accu_2
 best_param = best_param_1 if best_accu_1 > best_accu_2 else best_param_2
@@ -281,7 +188,9 @@ print(best_param)
 
 best_param['learning_rate'] = 1e-2
 
+# draw accuracy of best classifier for different epoch
 epochs = [30, 50, 100, 150, 300, 500, 750, 1000, 1500]
-accuracies = drawAccuOfBestForDiffEpoch(train_data, train_label, test_data, test_label,
+accuracies = drawAccuOfBestForDiffEpoch(LogisticRegression,
+                                        train_data, train_label, test_data, test_label,
                                         best_param, epochs, optimize=optimize)
 print(accuracies)

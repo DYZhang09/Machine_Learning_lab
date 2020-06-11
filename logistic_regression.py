@@ -1,6 +1,4 @@
-import numpy as np
-from tools_logistic_and_svm \
-    import getData, drawAccuOfBestForDiffEpoch, drawLossForDiffParams
+from tools_logistic_and_svm import *
 
 
 class LogisticRegression(object):
@@ -171,7 +169,7 @@ learning_rates = [5e-1, 1e-1, 5e-2, 1e-2]
 reg_strengths1 = [1e-1, 1e-2]
 reg_strengths2 = [1e-3, 1e-4]
 epoch = 300
-(train_data, train_label), (test_data, test_label) = getData(r"H:\机器学习\结课实验\income.csv")
+(train_data, train_label), (test_data, test_label) = getData(r"H:\机器学习\结课实验\income.csv", visualize=True)
 
 # draw loss for different hyper-params
 optimize = 'rmsprop'

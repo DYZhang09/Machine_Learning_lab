@@ -1,6 +1,5 @@
 import numpy as np
-from tools_logistic_and_svm \
-    import getData, drawLossForDiffParams, drawAccuOfBestForDiffEpoch
+from tools_logistic_and_svm import *
 
 
 class LinearSVM(object):
@@ -150,7 +149,7 @@ class LinearSVM(object):
         return correct_num / test_label.shape[0]
 
 
-learning_rates = [1e-2, 1e-3, 1e-4, 1e-5]
+learning_rates = [1e-1, 1e-2, 1e-3, 1e-4]
 reg_strengths1 = [1e-1, 1e-2]
 reg_strengths2 = [1e-3, 1e-4]
 epoch = 300

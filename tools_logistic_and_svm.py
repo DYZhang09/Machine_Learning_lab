@@ -1,9 +1,12 @@
+from sklearn import manifold
+from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 import numpy as np
 import os
 import csv
 
-def getData(csv_file_path, keep_dim=True):
+
+def getData(csv_file_path, keep_dim=True, visualize=False):
     """
     preprocess data from csv file.\n
     :param csv_file_path: csv file path
@@ -38,6 +41,8 @@ def getData(csv_file_path, keep_dim=True):
     if keep_dim:
         train_label = train_label.reshape((1, -1))
         test_label = test_label.reshape((1, -1))
+    if visualize:
+        t_sne(data, label, 'visualization of dataset')
 
     return (train_data, train_label), (test_data, test_label)
 
@@ -124,3 +129,18 @@ def drawAccuOfBestForDiffEpoch(model, train_data, train_label, test_data, test_l
     plt.grid()
     plt.show()
     return accuracies
+
+
+def t_sne(x, labels, fig_title=None):
+    tsne = manifold.TSNE(n_components=3, init='pca')
+    x_tsne = tsne.fit_transform(x)
+    fig = plt.figure()
+    ax = Axes3D(fig)
+    colors = ['red', 'blue']
+    for i in range(int(x.shape[0]*0.4)):
+        ax.scatter(x_tsne[i, 0], x_tsne[i, 1],x_tsne[i, 2],
+                   color=colors[labels[i]])
+    if fig_title is not None:
+        plt.title(fig_title)
+    plt.show()
+

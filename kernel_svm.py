@@ -169,13 +169,19 @@ class KernelSVM(object):
 (train_data, train_label), (test_data, test_label) = getData(r"H:\机器学习\结课实验\income.csv",
                                                              keep_dim=False)
 sigmas = [1, 3, 5, 7, 9, 11, 13]
-accuracies = []
-for sigma in sigmas:
-    svm = KernelSVM(GaussianKernel(sigma=sigma), 1)
-    svm.train(train_data, train_label)
-    label = svm.predict(test_data)
-    accuracies.append(svm.calcAccuracy(test_label))
-    print(accuracies[-1])
-plt.plot(sigmas, accuracies)
+C_list = [1e-2, 1e-1, 1, 10, 100]
+for C in C_list:
+    accuracies = []
+    for sigma in sigmas:
+        svm = KernelSVM(GaussianKernel(sigma=sigma), C=C)
+        svm.train(train_data, train_label)
+        label = svm.predict(test_data)
+        accuracies.append(svm.calcAccuracy(test_label))
+        print(accuracies[-1])
+    plt.plot(sigmas, accuracies, label='C: ' +str(C))
+plt.title('Accuracy of different C and sigma of RBF kernel')
+plt.legend(loc='best')
+plt.xlabel('sigma')
+plt.ylabel('accuracy')
 plt.grid()
 plt.show()

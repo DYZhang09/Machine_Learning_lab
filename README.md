@@ -14,3 +14,6 @@
    代码文件tools_logistic_and_svm.py：包括通过csv文件获得矩阵化的数据的函数，实验相关作图函数，tsne降维可视化函数   
    代码文件kernel.py：定义核函数类，包括linear kernel与gaussian kernel，每个类需要有类数据成员linear(表示是否为线性核)以及类函数
    成员calculate(计算两个变量对应的核函数值)
+   
+### 扩展：使用tensorflow2重写结课实验部分代码
+1. 文件tf_logistic_regression.py：继承tf.keras.Model自定义模型实现LogisticRegression二分类器

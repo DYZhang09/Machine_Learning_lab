@@ -17,3 +17,4 @@
    
 ### 扩展：使用tensorflow2重写结课实验部分代码
 1. 文件tf_logistic_regression.py：继承tf.keras.Model自定义模型实现LogisticRegression二分类器
+2. 文件tf_linear_svm.py：继承tf.keras.Model自定义模型实现LinearSVM二分类器

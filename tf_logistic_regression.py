@@ -23,9 +23,7 @@ if __name__ == '__main__':
     num_epoch = 100
     lr = 1e-3
     dataset_path = r"H:\机器学习\结课实验\income.csv"
-
     (train_data, train_label), (test_data, test_label) = getData(dataset_path, False)
-    print(train_data.shape)
 
     model = LogisticRegression()
     model.compile(optimizer=keras.optimizers.Adam(learning_rate=lr),
